@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="SkyCast - A modern, premium weather application. Search any city for real-time weather, 5-day forecast, and detailed meteorological data." />
+  <meta name="keywords" content="weather app, forecast, temperature, humidity, wind speed, skycast" />
+  <meta name="author" content="SkyCast" />
+  <title>SkyCast - Premium Weather Dashboard</title>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" integrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+  <!-- Main CSS -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="weather-clear" id="app-body">
+
+  <!-- ==================== BACKGROUND LAYERS ==================== -->
+  <div class="bg-overlay" id="bg-overlay" aria-hidden="true"></div>
+  <div class="bg-particles" id="bg-particles" aria-hidden="true"></div>
+
+  <!-- ==================== HEADER ==================== -->
+  <header class="header" role="banner">
+    <div class="header-inner">
+      <div class="logo" aria-label="SkyCast Home">
+        <div class="logo-icon">
+          <i class="fa-solid fa-cloud-sun" aria-hidden="true"></i>
+        </div>
+        <span class="logo-text">Sky<span class="logo-accent">Cast</span></span>
+      </div>
+
+      <nav class="header-nav" aria-label="Main navigation">
+        <div class="header-status" id="header-status" aria-live="polite">
+          <i class="fa-solid fa-circle-dot status-dot" aria-hidden="true"></i>
+          <span>Live Weather</span>
+        </div>
+        <button
+          class="location-btn"
+          id="geolocation-btn"
+          aria-label="Use my current location"
+          title="Use my current location"
+        >
+          <i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i>
+          <span>My Location</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <main class="main-content" id="main-content" role="main">
+
+    <!-- SEARCH SECTION -->
+    <section class="search-section" aria-label="City search">
+      <div class="search-wrapper">
+        <div class="search-bar glass" role="search">
+          <label for="city-input" class="sr-only">Search for a city</label>
+          <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+          <input
+            type="text"
+            id="city-input"
+            class="search-input"
+            placeholder="Search for a city..."
+            autocomplete="off"
+            spellcheck="false"
+            aria-label="City name"
+            aria-describedby="search-hint"
+          />
+          <button
+            class="search-btn"
+            id="search-btn"
+            aria-label="Search weather"
+          >
+            <span>Search</span>
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="sr-only" id="search-hint">Type a city name and press Enter or click Search</p>
+
+        <!-- Recent Searches -->
+        <div class="recent-searches" id="recent-searches" aria-label="Recent searches" hidden>
+          <div class="recent-header">
+            <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+            <span>Recent</span>
+            <button class="clear-recent-btn" id="clear-recent-btn" aria-label="Clear recent searches">
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
+          </div>
+          <ul class="recent-list" id="recent-list" role="list" aria-label="Recently searched cities"></ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ERROR MESSAGE -->
+    <div
+      class="error-banner glass"
+      id="error-banner"
+      role="alert"
+      aria-live="assertive"
+      hidden
+    >
+      <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+      <div class="error-content">
+        <p class="error-title" id="error-title">Something went wrong</p>
+        <p class="error-msg" id="error-msg">Please try again.</p>
+      </div>
+      <button class="error-close-btn" id="error-close-btn" aria-label="Dismiss error">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- LOADING STATE -->
+    <div class="loading-overlay" id="loading-overlay" hidden aria-live="polite" aria-label="Loading weather data">
+      <div class="loading-spinner">
+        <div class="spinner-ring"></div>
+        <div class="spinner-ring spinner-ring--mid"></div>
+        <div class="spinner-ring spinner-ring--inner"></div>
+        <i class="fa-solid fa-cloud-sun spinner-icon" aria-hidden="true"></i>
+      </div>
+      <p class="loading-text">Fetching weather data<span class="loading-dots"></span></p>
+      <!-- Skeleton UI -->
+      <div class="skeleton-wrapper" aria-hidden="true">
+        <div class="skeleton skeleton-card skeleton-main"></div>
+        <div class="skeleton-grid">
+          <div class="skeleton skeleton-card skeleton-small"></div>
+          <div class="skeleton skeleton-card skeleton-small"></div>
+          <div class="skeleton skeleton-card skeleton-small"></div>
+          <div class="skeleton skeleton-card skeleton-small"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEATHER CONTENT (hidden until data loads) -->
+    <div class="weather-content" id="weather-content" hidden>
+
+      <!-- ── CURRENT WEATHER + DETAILS ROW ── -->
+      <div class="top-row">
+
+        <!-- Current Weather Card -->
+        <section class="card glass current-weather-card" aria-label="Current weather">
+          <div class="current-weather-top">
+            <div class="current-location-info">
+              <h1 class="city-name" id="city-name">--</h1>
+              <p class="country-name" id="country-name">--</p>
+              <p class="current-datetime" id="current-datetime">--</p>
+            </div>
+            <div class="current-weather-icon-wrap">
+              <i class="current-weather-icon fa-solid fa-cloud" id="current-weather-icon" aria-hidden="true"></i>
+              <p class="weather-desc" id="weather-desc">--</p>
+            </div>
+          </div>
+          <div class="current-weather-bottom">
+            <div class="temp-display">
+              <span class="temperature" id="current-temp">--</span>
+              <span class="temp-unit">°C</span>
+            </div>
+            <div class="feels-like-wrap">
+              <i class="fa-solid fa-temperature-half" aria-hidden="true"></i>
+              Feels like <span id="feels-like">--</span>°C
+            </div>
+          </div>
+        </section>
+
+        <!-- Weather Details Grid -->
+        <section class="details-section" aria-label="Weather details">
+          <div class="details-grid">
+
+            <article class="card glass detail-card" aria-label="Humidity">
+              <div class="detail-icon-wrap detail-icon--blue">
+                <i class="fa-solid fa-droplet" aria-hidden="true"></i>
+              </div>
+              <div class="detail-info">
+                <span class="detail-label">Humidity</span>
+                <span class="detail-value" id="humidity">--%</span>
+                <span class="detail-sub" id="humidity-sub">--</span>
+              </div>
+            </article>
+
+            <article class="card glass detail-card" aria-label="Wind speed">
+              <div class="detail-icon-wrap detail-icon--teal">
+                <i class="fa-solid fa-wind" aria-hidden="true"></i>
+              </div>
+              <div class="detail-info">
+                <span class="detail-label">Wind Speed</span>
+                <span class="detail-value" id="wind-speed">-- km/h</span>
+                <span class="detail-sub" id="wind-dir">--</span>
+              </div>
+            </article>
+
+            <article class="card glass detail-card" aria-label="Visibility">
+              <div class="detail-icon-wrap detail-icon--purple">
+                <i class="fa-solid fa-eye" aria-hidden="true"></i>
+              </div>
+              <div class="detail-info">
+                <span class="detail-label">Visibility</span>
+                <span class="detail-value" id="visibility">-- km</span>
+                <span class="detail-sub" id="visibility-sub">--</span>
+              </div>
+            </article>
+
+            <article class="card glass detail-card" aria-label="Pressure">
+              <div class="detail-icon-wrap detail-icon--orange">
+                <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+              </div>
+              <div class="detail-info">
+                <span class="detail-label">Pressure</span>
+                <span class="detail-value" id="pressure">-- hPa</span>
+                <span class="detail-sub" id="pressure-sub">--</span>
+              </div>
+            </article>
+
+            <article class="card glass detail-card" aria-label="Sunrise">
+              <div class="detail-icon-wrap detail-icon--yellow">
+                <i class="fa-solid fa-sun" aria-hidden="true"></i>
+              </div>
+              <div class="detail-info">
+                <span class="detail-label">Sunrise</span>
+                <span class="detail-value" id="sunrise">--:-- AM</span>
+                <span class="detail-sub">Local time</span>
+              </div>
+            </article>
+
+            <article class="card glass detail-card" aria-label="Sunset">
+              <div class="detail-icon-wrap detail-icon--pink">
+                <i class="fa-solid fa-moon" aria-hidden="true"></i>
+              </div>
+              <div class="detail-info">
+                <span class="detail-label">Sunset</span>
+                <span class="detail-value" id="sunset">--:-- PM</span>
+                <span class="detail-sub">Local time</span>
+              </div>
+            </article>
+
+          </div>
+        </section>
+      </div>
+
+      <!-- ── TODAY'S HIGHLIGHTS ── -->
+      <section class="highlights-section" aria-label="Today's highlights">
+        <h2 class="section-title">
+          <i class="fa-solid fa-star" aria-hidden="true"></i>
+          Today's Highlights
+        </h2>
+        <div class="highlights-grid">
+
+          <!-- UV Index -->
+          <article class="card glass highlight-card" aria-label="UV Index">
+            <div class="highlight-header">
+              <span class="highlight-label">UV Index</span>
+              <i class="fa-solid fa-sun" aria-hidden="true"></i>
+            </div>
+            <div class="uv-display">
+              <div class="uv-circle" id="uv-circle" role="img" aria-label="UV index level">
+                <span class="uv-value" id="uv-value">--</span>
+                <span class="uv-label-text" id="uv-label-text">--</span>
+              </div>
+            </div>
+            <div class="uv-bar-wrap" aria-hidden="true">
+              <div class="uv-bar">
+                <div class="uv-fill" id="uv-fill" style="width: 0%"></div>
+                <div class="uv-marker" id="uv-marker" style="left: 0%"></div>
+              </div>
+              <div class="uv-bar-labels">
+                <span>Low</span><span>Mod</span><span>High</span><span>V.High</span><span>Ext</span>
+              </div>
+            </div>
+          </article>
+
+          <!-- Wind Status -->
+          <article class="card glass highlight-card" aria-label="Wind status">
+            <div class="highlight-header">
+              <span class="highlight-label">Wind Status</span>
+              <i class="fa-solid fa-wind" aria-hidden="true"></i>
+            </div>
+            <div class="wind-display">
+              <span class="big-value" id="wind-big">--</span>
+              <span class="big-unit">km/h</span>
+            </div>
+            <div class="wind-compass-wrap">
+              <div class="wind-compass" id="wind-compass" aria-label="Wind direction compass">
+                <div class="compass-ring">
+                  <span class="compass-label north">N</span>
+                  <span class="compass-label south">S</span>
+                  <span class="compass-label east">E</span>
+                  <span class="compass-label west">W</span>
+                  <div class="compass-needle" id="compass-needle"></div>
+                </div>
+              </div>
+              <span class="wind-dir-text" id="wind-dir-text">--</span>
+            </div>
+          </article>
+
+          <!-- Humidity -->
+          <article class="card glass highlight-card" aria-label="Humidity level">
+            <div class="highlight-header">
+              <span class="highlight-label">Humidity</span>
+              <i class="fa-solid fa-droplet" aria-hidden="true"></i>
+            </div>
+            <div class="humidity-display">
+              <span class="big-value" id="humidity-big">--</span>
+              <span class="big-unit">%</span>
+            </div>
+            <div class="progress-wrap" aria-hidden="true">
+              <div class="progress-bar">
+                <div class="progress-fill" id="humidity-fill" style="width: 0%"></div>
+              </div>
+              <div class="progress-labels">
+                <span>0</span><span>50</span><span>100</span>
+              </div>
+            </div>
+            <p class="comfort-text" id="comfort-text">--</p>
+          </article>
+
+          <!-- Visibility Highlight -->
+          <article class="card glass highlight-card" aria-label="Visibility range">
+            <div class="highlight-header">
+              <span class="highlight-label">Visibility</span>
+              <i class="fa-solid fa-eye" aria-hidden="true"></i>
+            </div>
+            <div class="visibility-display">
+              <span class="big-value" id="visibility-big">--</span>
+              <span class="big-unit">km</span>
+            </div>
+            <div class="progress-wrap" aria-hidden="true">
+              <div class="progress-bar">
+                <div class="progress-fill progress-fill--purple" id="visibility-fill" style="width: 0%"></div>
+              </div>
+              <div class="progress-labels">
+                <span>0</span><span>5</span><span>10+</span>
+              </div>
+            </div>
+            <p class="comfort-text" id="visibility-text">--</p>
+          </article>
+
+          <!-- Air Pressure Highlight -->
+          <article class="card glass highlight-card" aria-label="Air pressure">
+            <div class="highlight-header">
+              <span class="highlight-label">Air Pressure</span>
+              <i class="fa-solid fa-gauge" aria-hidden="true"></i>
+            </div>
+            <div class="pressure-gauge-wrap">
+              <div class="pressure-arc-wrap" aria-hidden="true">
+                <svg class="pressure-arc" viewBox="0 0 120 70" aria-hidden="true">
+                  <path class="arc-track" d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke-width="8" stroke-linecap="round"/>
+                  <path class="arc-fill" id="pressure-arc-fill" d="M 10 65 A 50 50 0 0 1 110 65" fill="none" stroke-width="8" stroke-linecap="round" stroke-dasharray="157" stroke-dashoffset="157"/>
+                </svg>
+                <div class="pressure-needle-wrap">
+                  <div class="pressure-needle" id="pressure-needle"></div>
+                </div>
+              </div>
+              <div class="pressure-big-value">
+                <span id="pressure-big">--</span>
+                <span class="big-unit">hPa</span>
+              </div>
+              <div class="pressure-range-labels" aria-hidden="true">
+                <span>Low</span><span>Normal</span><span>High</span>
+              </div>
+            </div>
+          </article>
+
+        </div>
+      </section>
+
+      <!-- ── 5-DAY FORECAST ── -->
+      <section class="forecast-section" aria-label="5-day weather forecast">
+        <h2 class="section-title">
+          <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+          5-Day Forecast
+        </h2>
+        <div class="forecast-grid" id="forecast-grid" role="list">
+          <!-- Forecast cards injected by JS -->
+        </div>
+      </section>
+
+    </div>
+    <!-- end #weather-content -->
+
+    <!-- DEFAULT / WELCOME STATE -->
+    <div class="welcome-state" id="welcome-state" aria-label="Welcome screen">
+      <div class="welcome-icon-wrap">
+        <i class="fa-solid fa-cloud-sun welcome-icon" aria-hidden="true"></i>
+        <div class="welcome-ripple" aria-hidden="true"></div>
+        <div class="welcome-ripple welcome-ripple--2" aria-hidden="true"></div>
+      </div>
+      <h2 class="welcome-title">Discover Your Weather</h2>
+      <p class="welcome-subtitle">
+        Search for any city in the world to get real-time weather data,<br />
+        5-day forecasts, and detailed atmospheric insights.
+      </p>
+      <div class="welcome-features">
+        <div class="feature-chip"><i class="fa-solid fa-temperature-half" aria-hidden="true"></i> Real-time Temperature</div>
+        <div class="feature-chip"><i class="fa-solid fa-wind" aria-hidden="true"></i> Wind &amp; Pressure</div>
+        <div class="feature-chip"><i class="fa-solid fa-calendar-days" aria-hidden="true"></i> 5-Day Forecast</div>
+        <div class="feature-chip"><i class="fa-solid fa-location-crosshairs" aria-hidden="true"></i> GPS Location</div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ==================== FOOTER ==================== -->
+  <footer class="footer" role="contentinfo">
+    <p>
+      <i class="fa-solid fa-cloud-sun" aria-hidden="true"></i>
+      SkyCast &copy; <span id="footer-year"></span> &nbsp;·&nbsp;
+      Powered by <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer" aria-label="Open-Meteo (opens in new tab)">Open-Meteo</a>
+    </p>
+  </footer>
+
+  <!-- Geolocation Permission Denied Toast -->
+  <div class="toast" id="geo-toast" role="status" aria-live="polite" hidden>
+    <i class="fa-solid fa-location-dot-slash" aria-hidden="true"></i>
+    <span id="geo-toast-msg">Location access denied. Please search for a city instead.</span>
+  </div>
+
+  <!-- Main JavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>
